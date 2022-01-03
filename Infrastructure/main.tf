@@ -18,11 +18,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-provider "kubernetes" {
-  host                   = data.aws_eks_cluster.eks.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.eks.token
-}
 
 # Create a VPC
 module "vpc" {
@@ -84,5 +79,62 @@ resource "aws_security_group" "all_worker_mgmt" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.eks.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.eks.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.eks.token
+}
+
+resource "kubernetes_deployment" "webapp" {
+  metadata {
+    name = "terraform-example-deployment"
+    labels = {
+      test = var.k8_test_label_value
+    }
+  }
+
+  spec {
+    replicas = 2
+
+    selector {
+      match_labels = {
+        test = var.k8_test_label_value
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          test = var.k8_test_label_value
+        }
+      }
+
+      spec {
+        container {
+          image = "yeasy/simple-web"
+          name  = "webapp"
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service" "web_service" {
+  metadata {
+    name = "terraform-example-service"
+  }
+  spec {
+    selector = {
+      test = var.k8_test_label_value
+    }
+    port {
+      port        = 80
+      target_port = 80
+    }
+
+    type = "LoadBalancer"
   }
 }
