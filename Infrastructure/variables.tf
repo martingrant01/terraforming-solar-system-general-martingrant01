@@ -53,7 +53,7 @@ variable "eks_cluster_name" {
 }
 
 variable "k8_test_label_value" {
-    description = "Value of test label in k8s objects"
-    type = string
-    default = "ExampleApp"
+  description = "Value of test label in k8s objects"
+  type        = string
+  default     = "ExampleApp"
 }
